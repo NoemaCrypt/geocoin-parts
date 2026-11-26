@@ -1,0 +1,24 @@
+# Local chain data — never commit
+data/
+logs/
+
+# Secrets and provisioning output (claim codes!)
+*.key
+*.pem
+secrets/
+provisioning-out/
+
+# Build artifacts
+node_modules/
+dist/
+build/
+target/
+__pycache__/
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
