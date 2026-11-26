@@ -10,10 +10,10 @@
 | --- | --- | --- |
 | `unit_id` | bytes (32) | Публичный идентификатор единицы; в QR и в цепи |
 | `claim_hash` | bytes (32) | `SHA-256("geocoin:parts:claim:v1" \|\| unit_id \|\| claim_code)`; единственное представление секрета |
-| `batch_id` | bytes (32) | Партия минта (по одному на выпуск ОТК) |
+| `batch_id` | bytes (32) | Партия минта; минт батча идёт через `batch_root` (корень Меркла по unit_id\|\|claim_hash), цель пилота — 1M единиц (~100 батчей по 10k) |
 | `status` | enum | `draft, issued, in_transit, in_stock, redeemed, flagged, frozen, void` |
 | `custodian` | bytes (32) | GEO-адрес текущего звена custody |
-| `vin_hash` | bytes (32), optional | Хеш VIN при погашении; раскрытие VIN — по запросу (open question) |
+| `vin_hash` | bytes (32), optional | `SHA-256(VIN \|\| unit_salt)` или HMAC с ключом в HSM заводского backend; `unit_salt` — случайные 16 байт, хранятся **только off-chain** (claim_code не годится: он публикуется в witness при погашении) |
 | `issued_at` | uint64 | Unix-время минта |
 | `redeemed_at` | uint64, optional | Время погашения |
 
@@ -39,4 +39,5 @@ object_type || schema_id || schema_version || canonical_payload)` — по фо�
 - Переходы статуса: `issued→in_transit→in_stock→redeemed`;
   `any→flagged|frozen|void` — только по авторизации policy (freeze quorum).
 - Burn: witness содержит `claim_code`, `SHA-256(code) == claim_hash`.
-- Минт батча: подпись mint quorum, `batch_size ≤ MAX_BATCH`.
+- Минт батча: подпись mint quorum, проверка Membership в `batch_root`,
+  `batch_size ≤ MAX_BATCH` (цель ~10 000).
