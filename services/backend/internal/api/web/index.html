@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoCoin Parts — проверка детали</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0b0d12; color: #e6e9ef; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 48px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #8b93a7; font-size: 13px; margin-bottom: 20px; }
+  .card { width: 100%; max-width: 460px; background: #151923; border: 1px solid #2a3040; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #2a3040; background: #0f131b; color: inherit; font-size: 14px; margin-bottom: 10px; font-family: ui-monospace, monospace; }
+  button { width: 100%; padding: 12px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; background: #3d6bff; color: #fff; margin-bottom: 8px; }
+  button.warn { background: #b8860b; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { border-radius: 12px; padding: 14px; font-size: 14.5px; line-height: 1.45; display: none; }
+  .ok    { background: #10331f; border: 1px solid #1f7a43; }
+  .warn  { background: #33260a; border: 1px solid #a3851f; }
+  .bad   { background: #3a1214; border: 1px solid #a33; }
+  .bad b { color: #ff7b72; }
+  .ok b  { color: #4ade80; }
+  .meta { color: #8b93a7; font-size: 12.5px; margin-top: 10px; word-break: break-all; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; background: #0f131b; border-radius: 10px; padding: 10px; text-align: center; }
+  .row .n { font-size: 20px; font-weight: 700; }
+  .row .t { font-size: 11.5px; color: #8b93a7; }
+  .flags span { display: inline-block; background: #3a1214; color: #ff9b93; border-radius: 999px; padding: 2px 10px; font-size: 11.5px; margin: 2px 4px 0 0; }
+  code { font-size: 12px; color: #9aa7c7; }
+</style>
+</head>
+<body>
+<h1>GeoCoin Parts · проверка детали</h1>
+<div class="sub">Сканируйте QR на коробке или введите unit_id</div>
+
+<div class="card">
+  <input id="unit" placeholder="unit_id (hex, 64 символа)" spellcheck="false">
+  <div class="row" style="margin-bottom:10px">
+    <button onclick="check()">Проверить</button>
+    <button class="warn" onclick="demoScan()">Демо-скан</button>
+  </div>
+  <div class="row" style="margin-bottom:0">
+    <div><div class="n" id="scans">–</div><div class="t">сканов всего</div></div>
+    <div><div class="n" id="scans24">–</div><div class="t">за 24 ч</div></div>
+    <div><div class="n" id="risk">–</div><div class="t">риск / 100</div></div>
+  </div>
+  <div id="status" class="status"></div>
+  <div class="flags" id="flags"></div>
+  <div class="meta" id="meta"></div>
+</div>
+
+<div class="card" id="redeemCard" style="display:none">
+  <div style="font-size:14px; margin-bottom:8px">Установка на авто — код под скретчем:</div>
+  <input id="code" placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX" spellcheck="false" autocomplete="off">
+  <button onclick="redeem()">Погасить (Установить)</button>
+  <div style="color:#8b93a7; font-size:12px">Не вскрывайте упаковку до покупки. Погашение необратимо и фиксируется в блокчейне.</div>
+</div>
+
+<script>
+const MINSK = {lat: 53.90, lon: 27.56};
+const ALMATY = {lat: 43.24, lon: 76.92};
+let last = null;
+
+async function post(path, body) {
+  const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  return {status: r.status, body: await r.json()};
+}
+
+async function check() {
+  const id = document.getElementById('unit').value.trim().toLowerCase();
+  if (!id) return;
+  const r = await fetch('/api/unit/' + id);
+  render(await r.json());
+}
+
+async function demoScan() {
+  const id = document.getElementById('unit').value.trim().toLowerCase();
+  if (!id) return alert('Введите unit_id из secrets.tsv');
+  const twoHoursAgo = Math.floor(Date.now()/1000) - 7200;
+  await post('/api/scan', {unit_id: id, lat: MINSK.lat, lon: MINSK.lon, ts: twoHoursAgo});
+  const res = await post('/api/scan', {unit_id: id, lat: ALMATY.lat, lon: ALMATY.lon});
+  render(res.body);
+}
+
+async function redeem() {
+  const id = document.getElementById('unit').value.trim().toLowerCase();
+  const code = document.getElementById('code').value.trim();
+  if (!id || !code) return;
+  const res = await post('/api/redeem', {unit_id: id, claim_code: code});
+  render(res.body.unit, res.body.message, res.ok);
+  document.getElementById('code').value = '';
+}
+
+function render(st, extraMsg, ok) {
+  last = st;
+  if (!st) return;
+  document.getElementById('scans').textContent = st.scans_total;
+  document.getElementById('scans24').textContent = st.scans_24h;
+  document.getElementById('risk').textContent = st.risk_score;
+  const el = document.getElementById('status');
+  el.style.display = 'block';
+  const flagsBox = document.getElementById('flags');
+  flagsBox.innerHTML = (st.flags || []).map(f => '<span>' + f + '</span>').join('');
+  const meta = document.getElementById('meta');
+  document.getElementById('redeemCard').style.display = st.status === 'issued' && st.found ? 'block' : 'none';
+
+  if (st.status === 'redeemed') {
+    el.className = 'status bad';
+    const d = st.redeemed_at ? new Date(st.redeemed_at * 1000).toLocaleString() : '';
+    el.innerHTML = '<b>ВНИМАНИЕ: Код уже был погашен ' + d + '!</b><br>Высокий риск подделки (клонированная этикетка).';
+  } else if (!st.found) {
+    el.className = 'status bad';
+    el.innerHTML = '<b>Единица не найдена в реестре.</b> Подделка или другая сеть.';
+  } else if (st.flags.includes('geo_velocity')) {
+    el.className = 'status bad';
+    el.innerHTML = '<b>ГЕО-АНОМАЛИЯ: физическая деталь не могла перемещаться так быстро.</b><br>Вероятно, этикетка клонирована.';
+  } else if (st.flags.includes('scan_count_red') || st.flags.includes('scan_count_yellow')) {
+    el.className = 'status warn';
+    el.innerHTML = '<b>Подозрительная активность: этот код проверяли ' + st.scans_24h + ' раз за сутки.</b><br>Оригинал, не активирована — но проверьте упаковку.';
+  } else if (ok) {
+    el.className = 'status ok';
+    el.innerHTML = '<b>' + (extraMsg || 'Оригинал. Выпущено заводом, ни разу не устанавливалось.') + '</b>';
+  } else {
+    el.className = 'status ok';
+    el.innerHTML = '<b>Оригинал. Выпущено заводом, ни разу не устанавливалось.</b><br>Статус: в обращении.';
+  }
+  meta.innerHTML = 'batch_root: <code>' + (st.batch_root || '—') + '</code>' +
+    '<br>unit_id: <code>' + (st.unit_id || '—') + '</code>';
+}
+</script>
+</body>
+</html>
