@@ -61,7 +61,7 @@ echo "  unit_id2 (сценарий custody): $UNIT2"
 echo
 echo "== Шаг 0: custody: Завод (Вайссах) → Официальный дилер Минск (геозона 300 км, BY) =="
 curl -s "$API/api/custody/transfer" -H 'Content-Type: application/json' \
-  -d '{"label":"PORSCHE-977-PILOT","from":"factory-weissach","zone":{"dealer_id":"dealer-minsk-01","name":"Официальный дилер Минск","country":"BY","lat":53.9,"lon":27.56,"radius_km":300}}' | JQ '["holder"]'
+  -d '{"label":"PORSCHE-977-PILOT","from":"factory-weissach","zone":{"dealer_id":"dealer-minsk-01","country":"BY","name":{"ru":"Официальный дилер Минск","en":"Official Minsk Dealer","de":"Offizieller Händler Minsk","es":"Concesionario oficial de Minsk","zh":"明斯克官方经销商"},"lat":53.9,"lon":27.56,"radius_km":300}}' | JQ '["holder"]'
 
 echo
 echo "== Шаг 1: скан в Минске (у дилера, внутри геозоны) =="
