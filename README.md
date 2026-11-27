@@ -2,10 +2,16 @@
 
 ## English
 
-An anti-counterfeit system for auto parts built on GeoCoin. This repository is
-isolated from the main L1 repository (`GeoCoin`) and uses **only isolated
-networks** (`degree-load`, `degree-test`) with their own data directories —
-the working mainnet is never touched.
+**GeoCoin Parts is B2B application software** (verification backend, batch
+provisioning, label printing) that works as a **client of the GeoCoin
+network**: it talks to a GeoCoin full node over RPC to anchor registry state
+(batch roots, redemptions, custody events) on-chain. It is not part of the
+consensus and does not modify the GeoCoin node software.
+
+During development the backend connects to **isolated dev-nets**
+(`degree-load`, `degree-test`) with their own data directories, so the
+production mainnet (`degree`) is untouched. At deployment the same code
+simply points its RPC at a mainnet client node.
 
 ## Model
 
@@ -85,10 +91,14 @@ recommendation).
 
 ## Isolated node
 
-The `load` (`degree-load`) network is fully isolated: its own P2P port 23030,
-RPC 23033, data directory `./data/loadnet`. No connection to the mainnet
-`degree`. The node binary and static libraries are taken from the main
-repository (`GEOCOIN_REPO`, default `~/Рабочий стол/GeoCoin`) read-only.
+**Dev-nets are a development-time safety measure only.** The `load`
+(`degree-load`) network has its own P2P port 23030, RPC 23033 and data
+directory `./data/loadnet`; nothing ever connects to the mainnet `degree`
+during development. On deployment the backend attaches to a mainnet client
+node via RPC (same API). The node binary and static libraries are taken from
+the main repository (`GEOCOIN_REPO`, default `~/Рабочий стол/GeoCoin`)
+read-only — GeoCoin itself is never modified: this is B2B software built
+*on top of* the chain, not a fork or a consensus participant.
 
 ## Status
 
@@ -112,10 +122,16 @@ VIN — hash only with an off-chain salt. Next steps — the "Дальше" sect
 
 ## Русский
 
-Система защиты автозапчастей от подделки на базе GeoCoin. Этот репозиторий
-изолирован от основного репозитория L1 (`GeoCoin`) и эксплуатирует **только
-изолированные сети** (`degree-load`, `degree-test`) со своими каталогами
-данных — работающий mainnet не затрагивается.
+**GeoCoin Parts — это B2B-прикладное ПО** (verification backend, генерация
+батчей, печать этикеток), работающее **как клиент сети GeoCoin**: оно
+подключается к полному узлу GeoCoin по RPC, чтобы якорить состояние реестра
+(batch_root, погашения, custody-события) на-цепи. Это не часть консенсуса и
+не модификация софта ноды GeoCoin.
+
+На этапе разработки backend подключается к **изолированным dev-сетям**
+(`degree-load`, `degree-test`) со своими каталогами данных — рабочий mainnet
+(`degree`) не затрагивается. При внедрении тот же код просто направляет RPC
+на клиентский узел mainnet.
 
 ## Модель
 
@@ -192,11 +208,14 @@ Risk engine (дополнительный слой поверх хэш-осно�
 
 ## Изолированная нода
 
-Сеть `load` (`degree-load`) полностью изолирована: собственный P2P-порт
-23030, RPC 23033, каталог данных `./data/loadnet`. Никакого соединения с
-mainnet `degree`. Бинарник ноды и статические библиотеки берутся из основного
+**Изолированные сети — только мера безопасности разработки.** Сеть `load`
+(`degree-load`) имеет собственные P2P-порт 23030, RPC 23033 и каталог данных
+`./data/loadnet`; в процессе разработки ничего не подключается к mainnet
+`degree`. При внедрении backend подключается к клиентскому узлу mainnet по
+RPC (тот же API). Бинарник ноды и статические библиотеки берутся из основного
 репозитория (`GEOCOIN_REPO`, по умолчанию `~/Рабочий стол/GeoCoin`) только
-на чтение.
+на чтение — GeoCoin не модифицируется: это B2B-ПО *поверх* цепи, не форк и
+не участник консенсуса.
 
 ## Статус
 
