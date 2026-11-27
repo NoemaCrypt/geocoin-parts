@@ -219,6 +219,37 @@
 
   .redeem-note { margin-top: 12px; color: var(--muted-soft); font-size: 12.5px; }
 
+  .icon-control {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; padding: 0; border: 1px solid var(--border);
+    background: var(--field); color: var(--gold-bright); cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+  .icon-control:hover { border-color: var(--gold-bright); background: var(--surface-top); transform: translateY(-1px); }
+  .icon-control svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-control--wide { width: auto; min-width: 70px; gap: 7px; padding-inline: 10px; color: var(--text); font-size: 12px; font-weight: 760; }
+  .icon-control--wide svg { width: 17px; height: 17px; }
+  .language-switcher { position: relative; }
+  .language-switcher__chevron { width: 12px !important; height: 12px !important; transition: transform 160ms ease; }
+  .language-switcher[data-open] .language-switcher__chevron { transform: rotate(180deg); }
+  .language-menu {
+    position: absolute; top: calc(100% + 10px); right: 0; min-width: 140px; padding: 6px;
+    visibility: hidden; border: 1px solid var(--border); background: var(--surface-strong);
+    box-shadow: 0 20px 50px var(--shadow); opacity: 0; transform: translateY(-8px);
+    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+    z-index: 110;
+  }
+  .language-switcher[data-open] .language-menu { visibility: visible; opacity: 1; transform: translateY(0); }
+  .language-menu button {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    min-height: 36px; padding: 7px 10px; border: 0; background: none; cursor: pointer;
+    color: var(--muted); font-family: var(--font-ui); font-size: 13px; font-weight: 700; text-align: left;
+  }
+  .language-menu button:hover, .language-menu button.is-current { background: var(--gold-faint); color: var(--text-strong); }
+  .language-menu button svg { width: 15px; height: 15px; fill: none; stroke: var(--gold-bright); stroke-width: 2; visibility: hidden; }
+  .language-menu button.is-current svg { visibility: visible; }
+
   /* ── Footer ─────────────────────────────────────────────── */
   .site-footer { border-top: 1px solid var(--gold-soft); padding: 22px 20px 34px; text-align: center; }
   .site-footer p { margin: 0; color: var(--muted-soft); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -241,7 +272,15 @@
       <span>GeoCoin&nbsp;<small>Parts</small></span>
     </a>
     <div class="header-spacer"></div>
-    <span class="net-chip"><i></i>verification node</span>
+    <span class="net-chip" data-i18n="netChip"><i></i>verification node</span>
+    <div class="language-switcher" data-language-switcher>
+      <button class="icon-control icon-control--wide" type="button" aria-expanded="false" aria-haspopup="menu" data-language-toggle>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 12h17M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg>
+        <span data-language-label>RU</span>
+        <svg class="language-switcher__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+      </button>
+      <div class="language-menu" role="menu" data-language-menu></div>
+    </div>
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="Светлая тема">
       <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.8A8.5 8.5 0 0 1 8.2 3.8 8.5 8.5 0 1 0 20.2 15.8Z"/></svg>
@@ -270,9 +309,9 @@
   <span class="coordinate coordinate--west" aria-hidden="true">27° 33′</span>
   <span class="coordinate coordinate--east" aria-hidden="true">E 27° 33′</span>
   <div class="hero__shell">
-    <p class="tagline"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M12 3 4 6v6c0 4.4 3.2 7.6 8 9 4.8-1.4 8-4.6 8-9V6l-8-3Z" stroke-linejoin="round"/></svg>Антиконтрафактный реестр автозапчастей</p>
-    <h1>Проверка детали</h1>
-    <p class="lead">Сканируйте QR на коробке или введите unit_id. Проверка до покупки бесплатна и не вскрывает скретч-слой; статус детали якорится в блокчейн GeoCoin.</p>
+    <p class="tagline"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M12 3 4 6v6c0 4.4 3.2 7.6 8 9 4.8-1.4 8-4.6 8-9V6l-8-3Z" stroke-linejoin="round"/></svg><span data-i18n="tagline">Антиконтрафактный реестр автозапчастей</span></p>
+    <h1 data-i18n="h1">Проверка детали</h1>
+    <p class="lead"><span data-i18n="lead">Сканируйте QR на коробке или введите unit_id. Проверка до покупки бесплатна и не вскрывает скретч-слой; статус детали якорится в блокчейн GeoCoin.</span></p>
   </div>
 </section>
 
@@ -281,32 +320,32 @@
   <div class="panel">
     <div class="panel__header">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
-      <h2>Проверить подлинность</h2>
-      <span class="hint">unit_id · hex64</span>
+      <h2 data-i18n="checkTitle">Проверить подлинность</h2>
+      <span class="hint" data-i18n="checkHint">unit_id · hex64</span>
     </div>
-    <input id="unit" class="field" placeholder="unit_id (hex, 64 символа)" spellcheck="false">
+    <input id="unit" class="field" placeholder="unit_id (hex, 64)" data-i18n-ph="unitPh" spellcheck="false">
     <div class="actions">
       <button class="action-link action-link--primary" id="btnCheck" onclick="check()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
-        Проверить
+        <span data-i18n="btnCheck">Проверить</span>
       </button>
       <!--DEMO-SCAN-BEGIN-->
       <button class="action-link action-link--gold" onclick="demoScan()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M12 8v4l2.5 2.5"/></svg>
-        Демо-скан
+        <span data-i18n="btnDemo">Демо-скан</span>
       </button>
       <!--DEMO-SCAN-END-->
     </div>
     <div class="stats">
-      <div class="stat"><div class="n" id="scans">–</div><div class="t">сканов всего</div></div>
-      <div class="stat"><div class="n" id="scans24">–</div><div class="t">за 24 ч</div></div>
-      <div class="stat"><div class="n" id="risk">–</div><div class="t">риск / 100</div></div>
+      <div class="stat"><div class="n" id="scans">–</div><div class="t" data-i18n="statTotal">сканов всего</div></div>
+      <div class="stat"><div class="n" id="scans24">–</div><div class="t" data-i18n="stat24">за 24 ч</div></div>
+      <div class="stat"><div class="n" id="risk">–</div><div class="t" data-i18n="statRisk">риск / 100</div></div>
     </div>
     <div id="status" class="verdict"></div>
     <div class="flags" id="flags"></div>
 
     <div class="custody" id="custodyCard">
-      <div class="custody__title">Путь детали</div>
+      <div class="custody__title" data-i18n="custodyTitle">Путь детали</div>
       <div id="custodyPath"></div>
     </div>
     <div class="meta" id="meta"></div>
@@ -315,29 +354,187 @@
   <div class="panel" id="redeemCard" style="display:none">
     <div class="panel__header">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v5h5"/><path d="M5 3h9l5 5v13a0 0 0 0 1 0 0H5a0 0 0 0 1 0 0V3Z" stroke-linejoin="round"/></svg>
-      <h2>Установка на автомобиль</h2>
-      <span class="hint">код под скретчем</span>
+      <h2 data-i18n="redeemTitle">Установка на автомобиль</h2>
+      <span class="hint" data-i18n="redeemHint">код под скретчем</span>
     </div>
     <input id="code" class="field" placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX" spellcheck="false" autocomplete="off">
     <div class="actions">
       <button class="action-link action-link--primary" onclick="redeem()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        Погасить (установить)
+        <span data-i18n="btnRedeem">Погасить (установить)</span>
       </button>
     </div>
-    <div class="redeem-note">Не вскрывайте упаковку до покупки. Погашение необратимо и фиксируется в блокчейне: после установки код повторно использовать нельзя — клоны этикетки мгновенно выявляются.</div>
+    <div class="redeem-note"><span data-i18n="redeemNote">Не вскрывайте упаковку до покупки. Погашение необратимо и фиксируется в блокчейне: после установки код повторно использовать нельзя — клоны этикетки мгновенно выявляются.</span></div>
   </div>
 
 </div>
 
 <footer class="site-footer">
-  <p>GeoCoin Parts · реестр якорится в блокчейн GeoCoin · проверка не требует регистрации</p>
+  <p><span data-i18n="footer">GeoCoin Parts · реестр якорится в блокчейн GeoCoin · проверка не требует регистрации</span></p>
 </footer>
 
 <script>
+/* ── i18n: RU / EN / DE / ES / ZH (как на geocoin-website) ── */
+const LOCALES = {
+  ru: { label: "RU",   htmlLang: "ru"    },
+  en: { label: "EN",   htmlLang: "en"    },
+  de: { label: "DE",   htmlLang: "de"    },
+  es: { label: "ES",   htmlLang: "es"    },
+  zh: { label: "简中", htmlLang: "zh-CN" },
+};
+
+const I18N = {
+  ru: {
+    title: "GeoCoin Parts — проверка детали",
+    tagline: "Антиконтрафактный реестр автозапчастей",
+    h1: "Проверка детали",
+    lead: "Сканируйте QR на коробке или введите unit_id. Проверка до покупки бесплатна и не вскрывает скретч-слой; статус детали якорится в блокчейн GeoCoin.",
+    netChip: "узел проверки",
+    checkTitle: "Проверить подлинность", checkHint: "unit_id · hex64",
+    unitPh: "unit_id (hex, 64)", btnCheck: "Проверить", btnDemo: "Демо-скан",
+    statTotal: "сканов всего", stat24: "за 24 ч", statRisk: "риск / 100",
+    redeemTitle: "Установка на автомобиль", redeemHint: "код под скретчем",
+    codePh: "XXXXXX-XXXXXX-XXXXXX-XXXXXX", btnRedeem: "Погасить (установить)",
+    redeemNote: "Не вскрывайте упаковку до покупки. Погашение необратимо и фиксируется в блокчейне: после установки код повторно использовать нельзя — клоны этикетки мгновенно выявляются.",
+    custodyTitle: "Путь детали",
+    holderFactory: "Завод (выпуск ОТК)",
+    region: (r, lat, lon) => "допустимый регион: " + r + " км от " + lat + ", " + lon,
+    factory: "Завод",
+    footer: "GeoCoin Parts · реестр якорится в блокчейн GeoCoin · проверка не требует регистрации",
+    themeLight: "Светлая тема",
+    alertUnit: "Введите unit_id из secrets.tsv",
+    vNotFound: "Единица не найдена в реестре. Подделка или другая сеть.",
+    vRedeemed: (d) => "ВНИМАНИЕ: код уже был погашен " + d + "! Высокий риск подделки (клонированная этикетка).",
+    vCritical: "КРИТИЧЕСКАЯ АНОМАЛИЯ: деталь вне региона официального дилера и есть признаки клонирования. Рекомендовано расследование и freeze партии.",
+    vGeo: "ГЕО-АНОМАЛИЯ: физическая деталь не могла перемещаться так быстро. Вероятно, этикетка клонирована.",
+    vScanCount: (n) => "Подозрительная активность: этот код проверяли " + n + " раз за сутки. Оригинал, не активирована — но проверьте упаковку.",
+    vMismatch: (name, c) => "Серый импорт или подделка. Деталь числится за " + name + " (" + c + "), но отсканирована вне его региона.",
+    vOkRedeemed: "Деталь погашена и привязана к автомобилю. Жизненный цикл закрыт.",
+    vOkDefault: "Оригинал. Выпущено заводом, ни разу не устанавливалось.",
+    vOkStatus: "Статус: в обращении.",
+  },
+  en: {
+    title: "GeoCoin Parts — part verification",
+    tagline: "Anti-counterfeit registry for auto parts",
+    h1: "Verify a part",
+    lead: "Scan the QR on the box or enter the unit_id. Pre-purchase verification is free and never opens the scratch layer; the part status is anchored to the GeoCoin blockchain.",
+    netChip: "verification node",
+    checkTitle: "Verify authenticity", checkHint: "unit_id · hex64",
+    unitPh: "unit_id (hex, 64)", btnCheck: "Verify", btnDemo: "Demo scan",
+    statTotal: "scans total", stat24: "in 24 h", statRisk: "risk / 100",
+    redeemTitle: "Install on vehicle", redeemHint: "code under scratch",
+    codePh: "XXXXXX-XXXXXX-XXXXXX-XXXXXX", btnRedeem: "Redeem (install)",
+    redeemNote: "Do not open the packaging before purchase. Redemption is irreversible and recorded on-chain: after installation the code cannot be reused — label clones are detected instantly.",
+    custodyTitle: "Part journey",
+    holderFactory: "Factory (QA release)",
+    region: (r, lat, lon) => "allowed region: " + r + " km from " + lat + ", " + lon,
+    factory: "Factory",
+    footer: "GeoCoin Parts · registry anchored to the GeoCoin blockchain · no registration required",
+    themeLight: "Light theme",
+    alertUnit: "Enter a unit_id from secrets.tsv",
+    vNotFound: "Unit not found in the registry. Counterfeit or another network.",
+    vRedeemed: (d) => "WARNING: this code was already redeemed " + d + "! High risk of counterfeit (cloned label).",
+    vCritical: "CRITICAL ANOMALY: the part is outside the official dealer's region and shows signs of cloning. Investigation and a batch freeze are recommended.",
+    vGeo: "GEO ANOMALY: a physical part could not move this fast. The label is likely cloned.",
+    vScanCount: (n) => "Suspicious activity: this code was checked " + n + " times in 24 hours. Genuine and not yet installed — but inspect the packaging.",
+    vMismatch: (name, c) => "Grey import or counterfeit. The part is assigned to " + name + " (" + c + ") but was scanned outside its region.",
+    vOkRedeemed: "Part redeemed and linked to a vehicle. Lifecycle closed.",
+    vOkDefault: "Genuine. Released by the factory, never installed.",
+    vOkStatus: "Status: in circulation.",
+  },
+  de: {
+    title: "GeoCoin Parts — Teile-Verifikation",
+    tagline: "Antifälschungsregister für Autoteile",
+    h1: "Teil prüfen",
+    lead: "Scannen Sie den QR-Code auf der Verpackung oder geben Sie die unit_id ein. Die Prüfung vor dem Kauf ist kostenlos und öffnet die Rubbelschicht nicht; der Teilestatus wird in die GeoCoin-Blockchain verankert.",
+    netChip: "verifikationsknoten",
+    checkTitle: "Echtheit prüfen", checkHint: "unit_id · hex64",
+    unitPh: "unit_id (hex, 64)", btnCheck: "Prüfen", btnDemo: "Demo-Scan",
+    statTotal: "Scans gesamt", stat24: "in 24 Std.", statRisk: "Risiko / 100",
+    redeemTitle: "Fahrzeugmontage", redeemHint: "Code unter Rubbelschicht",
+    codePh: "XXXXXX-XXXXXX-XXXXXX-XXXXXX", btnRedeem: "Einlösen (montieren)",
+    redeemNote: "Verpackung nicht vor dem Kauf öffnen. Die Einlösung ist unwiderruflich und wird in der Blockchain fixiert: nach der Montage kann der Code nicht wiederverwendet werden — Label-Klone werden sofort erkannt.",
+    custodyTitle: "Weg des Teils",
+    holderFactory: "Werk (QA-Freigabe)",
+    region: (r, lat, lon) => "zulässige Region: " + r + " km von " + lat + ", " + lon,
+    factory: "Werk",
+    footer: "GeoCoin Parts · Register in der GeoCoin-Blockchain verankert · keine Registrierung nötig",
+    themeLight: "Helles Design",
+    alertUnit: "Geben Sie eine unit_id aus secrets.tsv ein",
+    vNotFound: "Einheit im Register nicht gefunden. Fälschung oder anderes Netzwerk.",
+    vRedeemed: (d) => "ACHTUNG: Dieser Code wurde bereits " + d + " eingelöst! Hohes Fälschungsrisiko (kloniertes Etikett).",
+    vCritical: "KRITISCHE ANOMALIE: Das Teil ist außerhalb der Region des offiziellen Händlers und zeigt Klonierungsmerkmale. Untersuchung und Chargensperre empfohlen.",
+    vGeo: "GEO-ANOMALIE: Ein physisches Teil konnte sich so schnell nicht bewegen. Das Etikett ist wahrscheinlich geklont.",
+    vScanCount: (n) => "Verdächtige Aktivität: Dieser Code wurde " + n + " Mal in 24 Stunden geprüft. Original, nicht montiert — prüfen Sie dennoch die Verpackung.",
+    vMismatch: (name, c) => "Grauimport oder Fälschung. Das Teil ist " + name + " (" + c + ") zugeordnet, wurde aber außerhalb seiner Region gescannt.",
+    vOkRedeemed: "Teil eingelöst und einem Fahrzeug zugeordnet. Lebenszyklus abgeschlossen.",
+    vOkDefault: "Original. Vom Werk ausgeliefert, nie montiert.",
+    vOkStatus: "Status: im Umlauf.",
+  },
+  es: {
+    title: "GeoCoin Parts — verificación de pieza",
+    tagline: "Registro antifalsificación de autopartes",
+    h1: "Verificar pieza",
+    lead: "Escanee el QR de la caja o introduzca el unit_id. La verificación previa a la compra es gratuita y no abre la capa de raspar; el estado de la pieza se ancla en la blockchain de GeoCoin.",
+    netChip: "nodo de verificación",
+    checkTitle: "Verificar autenticidad", checkHint: "unit_id · hex64",
+    unitPh: "unit_id (hex, 64)", btnCheck: "Verificar", btnDemo: "Escaneo demo",
+    statTotal: "escaneos totales", stat24: "en 24 h", statRisk: "riesgo / 100",
+    redeemTitle: "Instalación en vehículo", redeemHint: "código bajo capa rasparable",
+    codePh: "XXXXXX-XXXXXX-XXXXXX-XXXXXX", btnRedeem: "Canjear (instalar)",
+    redeemNote: "No abra el embalaje antes de comprar. El canje es irreversible y se registra en la blockchain: tras la instalación el código no puede reutilizarse — los clones de etiqueta se detectan al instante.",
+    custodyTitle: "Ruta de la pieza",
+    holderFactory: "Fábrica (liberación QC)",
+    region: (r, lat, lon) => "región permitida: " + r + " km desde " + lat + ", " + lon,
+    factory: "Fábrica",
+    footer: "GeoCoin Parts · registro anclado a la blockchain GeoCoin · sin registro necesario",
+    themeLight: "Tema claro",
+    alertUnit: "Introduzca un unit_id de secrets.tsv",
+    vNotFound: "Unidad no encontrada en el registro. Falsificación u otra red.",
+    vRedeemed: (d) => "ATENCIÓN: este código ya fue canjeado " + d + "! Alto riesgo de falsificación (etiqueta clonada).",
+    vCritical: "ANOMALÍA CRÍTICA: la pieza está fuera de la región del distribuidor oficial y muestra signos de clonación. Se recomienda investigación y congelar el lote.",
+    vGeo: "ANOMALÍA GEO: una pieza física no pudo desplazarse tan rápido. Probablemente la etiqueta está clonada.",
+    vScanCount: (n) => "Actividad sospechosa: este código se verificó " + n + " veces en 24 horas. Original, no instalado — revise el embalaje.",
+    vMismatch: (name, c) => "Importación gris o falsificación. La pieza está asignada a " + name + " (" + c + ") pero fue escaneada fuera de su región.",
+    vOkRedeemed: "Pieza canjeada y vinculada a un vehículo. Ciclo de vida cerrado.",
+    vOkDefault: "Original. Emitida por la fábrica, nunca instalada.",
+    vOkStatus: "Estado: en circulación.",
+  },
+  zh: {
+    title: "GeoCoin Parts — 零件验证",
+    tagline: "汽车零件防伪登记系统",
+    h1: "零件验证",
+    lead: "扫描包装盒上的二维码或输入 unit_id。购买前验证免费，且不会刮开刮刮层；零件状态锚定于 GeoCoin 区块链。",
+    netChip: "验证节点",
+    checkTitle: "验证真伪", checkHint: "unit_id · hex64",
+    unitPh: "unit_id（十六进制，64 位）", btnCheck: "验证", btnDemo: "演示扫描",
+    statTotal: "累计扫描", stat24: "24 小时内", statRisk: "风险 / 100",
+    redeemTitle: "安装到车辆", redeemHint: "刮刮层下的代码",
+    codePh: "XXXXXX-XXXXXX-XXXXXX-XXXXXX", btnRedeem: "兑换（安装）",
+    redeemNote: "购买前请勿拆开包装。兑换不可逆并记录在区块链上：安装后代码不可重复使用——克隆标签会被立即识别。",
+    custodyTitle: "零件流转",
+    holderFactory: "工厂（质检放行）",
+    region: (r, lat, lon) => "允许区域：" + r + " 公里（自 " + lat + ", " + lon + "）",
+    factory: "工厂",
+    footer: "GeoCoin Parts · 登记系统锚定于 GeoCoin 区块链 · 无需注册",
+    themeLight: "浅色主题",
+    alertUnit: "请输入 secrets.tsv 中的 unit_id",
+    vNotFound: "登记系统中未找到该单元。疑似伪造或其他网络。",
+    vRedeemed: (d) => "警告：该代码已于 " + d + " 兑换！高伪风险（克隆标签）。",
+    vCritical: "严重异常：零件位于官方经销商区域之外，并存在克隆迹象。建议调查并冻结批次。",
+    vGeo: "地理异常：实体零件不可能移动如此之快。标签很可能已被克隆。",
+    vScanCount: (n) => "可疑活动：该代码在 24 小时内被查验 " + n + " 次。正品，尚未安装——但仍请检查包装。",
+    vMismatch: (name, c) => "灰色进口或伪造。零件归属于 " + name + "（" + c + "），但在其区域外被扫描。",
+    vOkRedeemed: "零件已兑换并绑定车辆。生命周期已结束。",
+    vOkDefault: "正品。由工厂发出，从未安装。",
+    vOkStatus: "状态：流通中。",
+  },
+};
+
 const MINSK = {lat: 53.90, lon: 27.56};
 const ALMATY = {lat: 43.24, lon: 76.92};
 const themeKey = 'geocoin-theme';
+const localeKey = 'geocoin-locale';
 
 try { document.documentElement.dataset.theme = localStorage.getItem(themeKey) === 'light' ? 'light' : 'dark'; } catch {}
 document.querySelector('[data-theme-toggle]').addEventListener('click', () => {
@@ -345,6 +542,46 @@ document.querySelector('[data-theme-toggle]').addEventListener('click', () => {
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem(themeKey, next); } catch {}
 });
+
+let cur = 'ru';
+let lastState = null;
+function t(k) { return I18N[cur][k]; }
+
+function applyLocale(lang) {
+  if (!LOCALES[lang]) lang = 'ru';
+  cur = lang;
+  try { localStorage.setItem(localeKey, lang); } catch {}
+  document.documentElement.lang = LOCALES[lang].htmlLang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelector('[data-theme-toggle]').setAttribute('aria-label', t('themeLight'));
+  document.querySelector('[data-language-label]').textContent = LOCALES[lang].label;
+  const menu = document.querySelector('[data-language-menu]');
+  menu.innerHTML = Object.keys(LOCALES).map(l =>
+    '<button type="button" role="menuitem" class="' + (l === lang ? 'is-current' : '') + '" data-locale="' + l + '">' +
+    '<span>' + LOCALES[l].label + '</span>' +
+    '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg></button>'
+  ).join('');
+  menu.querySelectorAll('[data-locale]').forEach(b => b.addEventListener('click', () => {
+    closeLanguage();
+    applyLocale(b.dataset.locale);
+    if (lastState) render(lastState.st, lastState.extraMsg, lastState.ok);
+  }));
+  if (lastState) render(lastState.st, lastState.extraMsg, lastState.ok);
+}
+
+const sw = document.querySelector('[data-language-switcher]');
+const swToggle = document.querySelector('[data-language-toggle]');
+function closeLanguage() { sw.removeAttribute('data-open'); swToggle.setAttribute('aria-expanded', 'false'); }
+swToggle.addEventListener('click', () => {
+  const open = !sw.hasAttribute('data-open');
+  if (open) sw.setAttribute('data-open', '');
+  else closeLanguage();
+  swToggle.setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', (e) => { if (!sw.contains(e.target)) closeLanguage(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLanguage(); });
 
 let last = null;
 
@@ -369,25 +606,26 @@ async function check() {
 <!--DEMO-SCAN-BEGIN-->
 async function demoScan() {
   const id = document.getElementById('unit').value.trim().toLowerCase();
-  if (!id) return alert('Введите unit_id из secrets.tsv');
+  if (!id) return alert(t('alertUnit'));
   const twoHoursAgo = Math.floor(Date.now()/1000) - 7200;
   await post('/api/scan', {unit_id: id, lat: MINSK.lat, lon: MINSK.lon, ts: twoHoursAgo});
   const res = await post('/api/scan', {unit_id: id, lat: ALMATY.lat, lon: ALMATY.lon});
   render(res.body);
 }
-
 <!--DEMO-SCAN-END-->
+
 async function redeem() {
   const id = document.getElementById('unit').value.trim().toLowerCase();
   const code = document.getElementById('code').value.trim();
   if (!id || !code) return;
   const res = await post('/api/redeem', {unit_id: id, claim_code: code});
-  render(res.body.unit, res.body.message, res.ok);
+  render(res.body.unit, null, res.ok);
   document.getElementById('code').value = '';
 }
 
 function render(st, extraMsg, ok) {
   last = st;
+  lastState = {st, extraMsg, ok};
   if (!st) return;
   document.getElementById('scans').textContent = st.scans_total;
   document.getElementById('scans24').textContent = st.scans_24h;
@@ -403,11 +641,11 @@ function render(st, extraMsg, ok) {
   if (st.custody) {
     custBox.style.display = 'block';
     const z = st.custody.zone;
-    let path = '<div class="custody__holder">' + (st.custody.holder === 'factory' ? 'Завод (выпуск ОТК)' : (z && z.name ? z.name : st.custody.holder)) + '</div>';
-    if (z) path += '<div class="custody__meta">' + (z.country || '?') + ' · допустимый регион: ' + z.radius_km + ' км от ' + z.lat.toFixed(1) + ', ' + z.lon.toFixed(1) + '</div>';
+    let path = '<div class="custody__holder">' + (st.custody.holder === 'factory' ? t('holderFactory') : (z && z.name ? z.name : st.custody.holder)) + '</div>';
+    if (z) path += '<div class="custody__meta">' + (z.country || '?') + ' · ' + t('region')(z.radius_km, z.lat.toFixed(1), z.lon.toFixed(1)) + '</div>';
     if (st.custody.path && st.custody.path.length) {
       path += '<ol>' + st.custody.path.map(p =>
-        '<li>' + (p.from === 'factory' ? 'Завод' : p.from) + ' → ' + (p.name || p.to) + ' (' + (p.country || '?') + ', ' + new Date(p.ts * 1000).toLocaleString() + ')</li>'
+        '<li>' + (p.from === 'factory' ? t('factory') : p.from) + ' → ' + (p.name || p.to) + ' (' + (p.country || '?') + ', ' + new Date(p.ts * 1000).toLocaleString() + ')</li>'
       ).join('') + '</ol>';
     }
     document.getElementById('custodyPath').innerHTML = path;
@@ -418,32 +656,38 @@ function render(st, extraMsg, ok) {
   if (st.status === 'redeemed') {
     el.className = 'verdict verdict--bad';
     const d = st.redeemed_at ? new Date(st.redeemed_at * 1000).toLocaleString() : '';
-    el.innerHTML = '<b>ВНИМАНИЕ: код уже был погашен ' + d + '!</b><br>Высокий риск подделки (клонированная этикетка).';
+    el.innerHTML = '<b>' + t('vRedeemed')(d) + '</b>';
   } else if (!st.found) {
     el.className = 'verdict verdict--bad';
-    el.innerHTML = '<b>Единица не найдена в реестре.</b> Подделка или другая сеть.';
+    el.innerHTML = '<b>' + t('vNotFound') + '</b>';
   } else if (st.flags.includes('custody_critical')) {
     el.className = 'verdict verdict--bad';
-    el.innerHTML = '<b>КРИТИЧЕСКАЯ АНОМАЛИЯ: деталь вне региона официального дилера и есть признаки клонирования.</b><br>Рекомендовано расследование и freeze партии.';
+    el.innerHTML = '<b>' + t('vCritical') + '</b>';
   } else if (st.flags.includes('geo_velocity')) {
     el.className = 'verdict verdict--bad';
-    el.innerHTML = '<b>ГЕО-АНОМАЛИЯ: физическая деталь не могла перемещаться так быстро.</b><br>Вероятно, этикетка клонирована.';
+    el.innerHTML = '<b>' + t('vGeo') + '</b>';
   } else if (st.flags.includes('scan_count_red') || st.flags.includes('scan_count_yellow')) {
     el.className = 'verdict verdict--warn';
-    el.innerHTML = '<b>Подозрительная активность: этот код проверяли ' + st.scans_24h + ' раз за сутки.</b><br>Оригинал, не активирована — но проверьте упаковку.';
+    el.innerHTML = '<b>' + t('vScanCount')(st.scans_24h) + '</b>';
   } else if (st.flags.includes('custody_mismatch')) {
     el.className = 'verdict verdict--warn';
     const z = st.custody && st.custody.zone;
-    el.innerHTML = '<b>Серый импорт или подделка.</b><br>Деталь числится за ' + (z && z.name ? z.name : 'дилером') + ' (' + (z && z.country || '?') + '), но отсканирована вне его региона.';
+    el.innerHTML = '<b>' + t('vMismatch')(z && z.name ? z.name : '', z && z.country || '?') + '</b>';
   } else if (ok) {
     el.className = 'verdict verdict--ok';
-    el.innerHTML = '<b>' + (extraMsg || 'Оригинал. Выпущено заводом, ни разу не устанавливалось.') + '</b>';
+    el.innerHTML = '<b>' + t('vOkRedeemed') + '</b>';
   } else {
     el.className = 'verdict verdict--ok';
-    el.innerHTML = '<b>Оригинал. Выпущено заводом, ни разу не устанавливалось.</b><br>Статус: в обращении.';
+    el.innerHTML = '<b>' + t('vOkDefault') + '</b><br>' + t('vOkStatus');
   }
   meta.innerHTML = 'batch_root: <code>' + (st.batch_root || '—') + '</code><br>unit_id: <code>' + (st.unit_id || '—') + '</code>';
 }
-</script>
+
+try {
+  applyLocale(localStorage.getItem(localeKey) || (navigator.language || 'ru').slice(0, 2));
+} catch {
+  applyLocale('ru');
+}
+</script></script>
 </body>
 </html>
