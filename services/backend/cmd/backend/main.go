@@ -36,6 +36,8 @@ func main() {
 	signer := flag.String("signer", "tools/falcon-signer/falcon-signer", "путь к falcon-signer")
 	schemaHash := flag.String("schema-hash", "1df5c03de9b074d6768d9c79a97e06f924c11c9d1fbad116ddf3621c2c9e068f", "schema_hash учётного сайдчейна")
 	sidechainName := flag.String("sidechain-name", "geocoin-parts-units", "имя учётного сайдчейна")
+	sidechainNamespace := flag.String("sidechain-namespace", "parts-units", "namespace учётного сайдчейна (mainnet: глобально уникальное имя)")
+	uniqueNamespace := flag.Bool("unique-namespace", true, "добавлять уникальный суффикс к namespace (dev-прогоны; на mainnet — выключить)")
 	anchorStatePath := flag.String("anchor-state", "provisioning-out/anchor-state.json", "файл состояния якорения")
 	flag.Parse()
 
@@ -79,22 +81,30 @@ func main() {
 			log.Fatalf("node-key-file: %v (см. scripts/bootstrap-node.sh)", err)
 		}
 		client := node.NewClient(*rpcURL, *rpcUser, strings.TrimSpace(string(pass)), *signer, strings.TrimSpace(string(key)))
-		anc, err := node.LoadAnchorer(client, *schemaHash, "parts-units", *sidechainName, *anchorStatePath, 8.0, 5000, log.Printf)
+		anc, err := node.LoadAnchorer(client, *schemaHash, *sidechainNamespace, *sidechainName, *anchorStatePath, 8.0, 5000, *uniqueNamespace, log.Printf)
 		if err != nil {
 			log.Fatal(err)
 		}
+		// регистрация может требовать подтверждений депозита (mainnet-блоки
+		// по 6-10 мин) — ошибка НЕ фатальна, доводим в фоновом ретрае
 		if err := anc.EnsureRegistered(); err != nil {
-			log.Fatalf("якорение: %v", err)
+			log.Printf("якорение (продолжим в ретрае): %v", err)
 		}
 		if firstRoot != "" {
 			srv.BaseRoot = firstRoot
 			srv.PendingBaseline = true
 		}
 		srv.Anchor = anc
-		// фоновый ретрай чекпоинтов: подтверждение регистрации и интервал L1
+		// фоновый ретрай: сначала регистрация, затем чекпоинты
 		go func() {
 			for {
 				time.Sleep(10 * time.Second)
+				if !anc.Registered {
+					if err := anc.EnsureRegistered(); err != nil {
+						log.Printf("anchor retry (register): %v", err)
+					}
+					continue
+				}
 				if !srv.HasPendingWork() {
 					continue
 				}

@@ -23,9 +23,10 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Go binaries
-provision
-backend
+# Go binaries (корневые, не каталоги)
+/provision
+/backend
+services/provisioning/cmd/provision/provision
 
 # Node RPC passwords and dev keys (isolated network only)
 data/rpc-admin-pass
