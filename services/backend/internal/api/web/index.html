@@ -623,6 +623,18 @@ async function redeem() {
   document.getElementById('code').value = '';
 }
 
+// dealerName — имя дилера на текущей локали (fallback: name → dealer_id)
+function dealerName(z) {
+  if (!z) return '';
+  if (z.names && z.names[cur]) return z.names[cur];
+  return z.name || z.dealer_id || '';
+}
+function placeName(p, z) {
+  if (p.names && p.names[cur]) return p.names[cur];
+  if (z && z.names && z.names[cur]) return z.names[cur]; // старые события без names — имя текущей зоны
+  return p.name || p.to || '';
+}
+
 function render(st, extraMsg, ok) {
   last = st;
   lastState = {st, extraMsg, ok};
@@ -641,11 +653,11 @@ function render(st, extraMsg, ok) {
   if (st.custody) {
     custBox.style.display = 'block';
     const z = st.custody.zone;
-    let path = '<div class="custody__holder">' + (st.custody.holder === 'factory' ? t('holderFactory') : (z && z.name ? z.name : st.custody.holder)) + '</div>';
+    let path = '<div class="custody__holder">' + (st.custody.holder === 'factory' ? t('holderFactory') : (z ? dealerName(z) : st.custody.holder)) + '</div>';
     if (z) path += '<div class="custody__meta">' + (z.country || '?') + ' · ' + t('region')(z.radius_km, z.lat.toFixed(1), z.lon.toFixed(1)) + '</div>';
     if (st.custody.path && st.custody.path.length) {
       path += '<ol>' + st.custody.path.map(p =>
-        '<li>' + (p.from === 'factory' ? t('factory') : p.from) + ' → ' + (p.name || p.to) + ' (' + (p.country || '?') + ', ' + new Date(p.ts * 1000).toLocaleString() + ')</li>'
+        '<li>' + (String(p.from).startsWith('factory') ? t('factory') : p.from) + ' → ' + placeName(p, z) + ' (' + (p.country || '?') + ', ' + new Date(p.ts * 1000).toLocaleString(document.documentElement.lang) + ')</li>'
       ).join('') + '</ol>';
     }
     document.getElementById('custodyPath').innerHTML = path;
@@ -672,7 +684,7 @@ function render(st, extraMsg, ok) {
   } else if (st.flags.includes('custody_mismatch')) {
     el.className = 'verdict verdict--warn';
     const z = st.custody && st.custody.zone;
-    el.innerHTML = '<b>' + t('vMismatch')(z && z.name ? z.name : '', z && z.country || '?') + '</b>';
+    el.innerHTML = '<b>' + t('vMismatch')(z ? dealerName(z) : '', z && z.country || '?') + '</b>';
   } else if (ok) {
     el.className = 'verdict verdict--ok';
     el.innerHTML = '<b>' + t('vOkRedeemed') + '</b>';

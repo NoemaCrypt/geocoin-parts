@@ -181,13 +181,13 @@ func (s *Server) handleCustodyTransfer(w http.ResponseWriter, r *http.Request) {
 		Label   string `json:"label,omitempty"`
 		UnitID  string `json:"unit_id,omitempty"`
 		From    string `json:"from,omitempty"`
-		Zone    struct {
-			DealerID string  `json:"dealer_id"`
-			Country  string  `json:"country"`
-			Name     string  `json:"name"`
-			Lat      float64 `json:"lat"`
-			Lon      float64 `json:"lon"`
-			RadiusKm float64 `json:"radius_km"`
+		Zone struct {
+			DealerID string          `json:"dealer_id"`
+			Country  string          `json:"country"`
+			Name     json.RawMessage `json:"name"` // строка ИЛИ объект {ru,en,de,es,zh}
+			Lat      float64         `json:"lat"`
+			Lon      float64         `json:"lon"`
+			RadiusKm float64         `json:"radius_km"`
 		} `json:"zone"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -199,8 +199,24 @@ func (s *Server) handleCustodyTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zone := chain.DealerZone{
-		DealerID: req.Zone.DealerID, Country: req.Zone.Country, Name: req.Zone.Name,
+		DealerID: req.Zone.DealerID, Country: req.Zone.Country,
 		Lat: req.Zone.Lat, Lon: req.Zone.Lon, RadiusKm: req.Zone.RadiusKm,
+	}
+	// name: строка (fallback) или карта локализаций {ru:…, en:…, …}
+	if len(req.Zone.Name) > 0 {
+		var one string
+		if json.Unmarshal(req.Zone.Name, &one) == nil {
+			zone.Name = one
+		} else {
+			var many map[string]string
+			if json.Unmarshal(req.Zone.Name, &many) == nil {
+				zone.Names = many
+				zone.Name = many["ru"]
+				if zone.Name == "" {
+					zone.Name = many["en"]
+				}
+			}
+		}
 	}
 	ts := time.Now().Unix()
 	var target string
@@ -300,6 +316,7 @@ func (s *Server) unitState(id string, now int64) unitState {
 				zone = bc.Zone
 				cust["zone"] = map[string]any{
 					"dealer_id": bc.Zone.DealerID, "name": bc.Zone.Name,
+					"names": bc.Zone.Names,
 					"country": bc.Zone.Country, "lat": bc.Zone.Lat,
 					"lon": bc.Zone.Lon, "radius_km": bc.Zone.RadiusKm,
 				}
@@ -309,6 +326,7 @@ func (s *Server) unitState(id string, now int64) unitState {
 				path = append(path, map[string]any{
 					"from": ev.From, "to": ev.To, "ts": ev.TS,
 					"country": ev.Zone.Country, "name": ev.Zone.Name,
+					"names": ev.Zone.Names,
 				})
 			}
 			cust["path"] = path
