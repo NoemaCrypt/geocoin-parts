@@ -28,6 +28,9 @@ import (
 //go:embed web/index.html
 var webCheckerFS embed.FS
 
+//go:embed web/assets
+var webAssetsFS embed.FS
+
 var webChecker, _ = webCheckerFS.ReadFile("web/index.html")
 
 type Server struct {
@@ -460,12 +463,33 @@ type httpResp struct {
 }
 
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+	if r.URL.Path == "/" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write(webChecker)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(webChecker)
+	if strings.HasPrefix(r.URL.Path, "/assets/") {
+		name := strings.TrimPrefix(r.URL.Path, "/assets/")
+		if strings.Contains(name, "..") || strings.Contains(name, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		raw, err := webAssetsFS.ReadFile("web/assets/" + name)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		switch {
+		case strings.HasSuffix(name, ".png"):
+			w.Header().Set("Content-Type", "image/png")
+		case strings.HasSuffix(name, ".woff2"):
+			w.Header().Set("Content-Type", "font/woff2")
+		}
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(raw)
+		return
+	}
+	http.NotFound(w, r)
 }
 
 func writeJSON(w http.ResponseWriter, v any, code ...int) {
