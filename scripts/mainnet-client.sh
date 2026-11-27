@@ -68,7 +68,7 @@ case "${1:-}" in
         --rpc --rpc-port "$RPC_PORT" --rpc-user "$RPC_USER" --rpc-pass-file "$RPC_PASS_FILE" \
         --addnode "$ADDNODE" \
         --wallet-password-file "$WALLET_PASS_FILE" \
-        --status-interval 60 \
+                --status-interval 60 \
         > "$DATA/node.log" 2>&1 &
       echo "нода: PID $!"
     fi
