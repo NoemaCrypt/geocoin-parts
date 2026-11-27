@@ -47,6 +47,10 @@
   </div>
   <div id="status" class="status"></div>
   <div class="flags" id="flags"></div>
+  <div class="card" id="custodyCard" style="display:none; margin:12px 0 0; background:#0f131b; border:0">
+    <div style="font-size:12px; color:#8b93a7; margin-bottom:6px">ПУТЬ ДЕТАЛИ</div>
+    <div id="custodyPath" style="font-size:13px; line-height:1.5"></div>
+  </div>
   <div class="meta" id="meta"></div>
 </div>
 
@@ -105,6 +109,22 @@ function render(st, extraMsg, ok) {
   const meta = document.getElementById('meta');
   document.getElementById('redeemCard').style.display = st.status === 'issued' && st.found ? 'block' : 'none';
 
+  const custBox = document.getElementById('custodyCard');
+  if (st.custody) {
+    custBox.style.display = 'block';
+    const z = st.custody.zone;
+    let path = '<b>' + (st.custody.holder === 'factory' ? 'Завод (выпуск ОТК)' : (z && z.name ? z.name : st.custody.holder)) + '</b>';
+    if (z) path += ' · ' + (z.country || '?') + ' · зона ' + z.radius_km + ' км от ' + z.lat.toFixed(1) + ',' + z.lon.toFixed(1);
+    if (st.custody.path && st.custody.path.length) {
+      path += '<br>' + st.custody.path.map(p =>
+        '<span style="color:#8b93a7">' + (p.from === 'factory' ? 'Завод' : p.from) + ' → ' + (p.name || p.to) + ' (' + (p.country || '?') + ', ' + new Date(p.ts * 1000).toLocaleString() + ')</span>'
+      ).join('<br>');
+    }
+    document.getElementById('custodyPath').innerHTML = path;
+  } else {
+    custBox.style.display = 'none';
+  }
+
   if (st.status === 'redeemed') {
     el.className = 'status bad';
     const d = st.redeemed_at ? new Date(st.redeemed_at * 1000).toLocaleString() : '';
@@ -112,12 +132,19 @@ function render(st, extraMsg, ok) {
   } else if (!st.found) {
     el.className = 'status bad';
     el.innerHTML = '<b>Единица не найдена в реестре.</b> Подделка или другая сеть.';
+  } else if (st.flags.includes('custody_critical')) {
+    el.className = 'status bad';
+    el.innerHTML = '<b>КРИТИЧЕСКАЯ АНОМАЛИЯ: деталь вне региона официального дилера и есть признаки клонирования.</b><br>Рекомендовано расследование и freeze партии.';
   } else if (st.flags.includes('geo_velocity')) {
     el.className = 'status bad';
     el.innerHTML = '<b>ГЕО-АНОМАЛИЯ: физическая деталь не могла перемещаться так быстро.</b><br>Вероятно, этикетка клонирована.';
   } else if (st.flags.includes('scan_count_red') || st.flags.includes('scan_count_yellow')) {
     el.className = 'status warn';
     el.innerHTML = '<b>Подозрительная активность: этот код проверяли ' + st.scans_24h + ' раз за сутки.</b><br>Оригинал, не активирована — но проверьте упаковку.';
+  } else if (st.flags.includes('custody_mismatch')) {
+    el.className = 'status warn';
+    const z = st.custody && st.custody.zone;
+    el.innerHTML = '<b>Серый импорт или подделка.</b><br>Деталь числится за ' + (z && z.name ? z.name : 'дилером') + ' (' + (z && z.country || '?') + '), но отсканирована вне его региона.';
   } else if (ok) {
     el.className = 'status ok';
     el.innerHTML = '<b>' + (extraMsg || 'Оригинал. Выпущено заводом, ни разу не устанавливалось.') + '</b>';

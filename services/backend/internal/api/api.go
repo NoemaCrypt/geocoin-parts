@@ -33,7 +33,8 @@ var webChecker, _ = webCheckerFS.ReadFile("web/index.html")
 type Server struct {
 	Chain   *chain.Chain
 	ScanLog string // путь к JSONL-логу сканов
-	Dermux  bool   // демо-режим: повышенные пороги не нужны, лог общий
+	Demux  bool   // демо-режим: повышенные пороги не нужны, лог общий
+	Custody *chain.CustodyRegistry // custody «Завод → Дилер» (Фаза 1)
 
 	// Якорение в L1 (опционально, -anchor): состояние/чекпоинты учётного сайдчейна
 	Anchor          *node.Anchorer
@@ -41,7 +42,17 @@ type Server struct {
 	BaseRoot        string    // batch_root — база состояния до первого чекпоинта
 	PendingBaseline bool      // batch_root ещё не закреплён
 	Pending         []receipt // погашения, ожидающие чекпоинта
+	CustodyPending  []custodyRec // custody-события, ожидающие чекпоинта
 }
+
+// custodyRec — custody-событие для state_root.
+type custodyRec struct {
+	Target  string
+	To      string
+	Country string
+	TS      int64
+}
+
 
 // receipt — погашение для следующего чекпоинта.
 type receipt struct {
@@ -68,6 +79,13 @@ func (s *Server) receiptsRoot() string {
 	}
 	h.Write([]byte(fmt.Sprint(len(s.Pending))))
 	h.Write(last[:])
+	var lastCust [32]byte
+	for _, ce := range s.CustodyPending {
+		sum := sha256.Sum256(append(append(append([]byte("geocoin:parts:custody:v1"), []byte(ce.Target)...), []byte(ce.To+ce.Country)...), []byte(fmt.Sprint(ce.TS))...))
+		lastCust = sum
+	}
+	h.Write([]byte(fmt.Sprint(len(s.CustodyPending))))
+	h.Write(lastCust[:])
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -81,13 +99,16 @@ func (s *Server) FlushPending() (string, error) {
 	s.AnchorRoot = root
 	s.PendingBaseline = false
 	s.Pending = nil
+	s.CustodyPending = nil
 	return txid, nil
 }
 
+
 // pendingWork — есть ли что якорить.
 func (s *Server) HasPendingWork() bool {
-	return s.Anchor != nil && (s.PendingBaseline || len(s.Pending) > 0)
+	return s.Anchor != nil && (s.PendingBaseline || len(s.Pending) > 0 || len(s.CustodyPending) > 0)
 }
+
 
 func (s *Server) Router() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -96,6 +117,7 @@ func (s *Server) Router() *http.ServeMux {
 	mux.HandleFunc("POST /api/scan", s.handleScan)
 	mux.HandleFunc("POST /api/redeem", s.handleRedeem)
 	mux.HandleFunc("POST /api/anchor", s.handleAnchor)
+	mux.HandleFunc("POST /api/custody/transfer", s.handleCustodyTransfer)
 	mux.HandleFunc("GET /", s.handleWeb)
 	return mux
 }
@@ -118,6 +140,76 @@ func (s *Server) handleAnchor(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleCustodyTransfer — перевод прав (партия или единица) дилеру с геозоной.
+// Dev-режим Фазы 1: подпись operations имитируется; на проде — operations quorum.
+func (s *Server) handleCustodyTransfer(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		BatchID string `json:"batch_id,omitempty"`
+		Label   string `json:"label,omitempty"`
+		UnitID  string `json:"unit_id,omitempty"`
+		From    string `json:"from,omitempty"`
+		Zone    struct {
+			DealerID string  `json:"dealer_id"`
+			Country  string  `json:"country"`
+			Name     string  `json:"name"`
+			Lat      float64 `json:"lat"`
+			Lon      float64 `json:"lon"`
+			RadiusKm float64 `json:"radius_km"`
+		} `json:"zone"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	if req.Zone.DealerID == "" {
+		writeJSON(w, httpResp{OK: false, Error: "BAD_REQUEST", Message: "zone.dealer_id обязателен"}, 400)
+		return
+	}
+	zone := chain.DealerZone{
+		DealerID: req.Zone.DealerID, Country: req.Zone.Country, Name: req.Zone.Name,
+		Lat: req.Zone.Lat, Lon: req.Zone.Lon, RadiusKm: req.Zone.RadiusKm,
+	}
+	ts := time.Now().Unix()
+	var target string
+	switch {
+	case req.UnitID != "":
+		var uid [32]byte
+		b, err := hex.DecodeString(strings.ToLower(req.UnitID))
+		if err != nil || len(b) != 32 {
+			writeJSON(w, httpResp{OK: false, Error: "BAD_UNIT", Message: "Некорректный unit_id"}, 400)
+			return
+		}
+		copy(uid[:], b)
+		s.Custody.TransferUnit(uid, zone, ts)
+		target = "unit:" + req.UnitID
+	default:
+		var bid [32]byte
+		var found bool
+		for _, batch := range s.Chain.Batches {
+			if req.BatchID != "" && batch.ID == strings.ToLower(req.BatchID) {
+				copy(bid[:], mustHex(batch.ID)); found = true; break
+			}
+			if req.Label != "" && batch.Label == req.Label {
+				copy(bid[:], mustHex(batch.ID)); found = true; break
+			}
+		}
+		if !found {
+			writeJSON(w, httpResp{OK: false, Error: "BAD_BATCH", Message: "Партия не найдена (batch_id или label)"}, 404)
+			return
+		}
+		s.Custody.Transfer(bid, req.From, zone, ts)
+		target = "batch:" + hex.EncodeToString(bid[:])
+		// custody-событие — в очередь чекпоинта состояния L1
+		s.CustodyPending = append(s.CustodyPending, custodyRec{Target: target, To: zone.DealerID, Country: zone.Country, TS: ts})
+	}
+	writeJSON(w, map[string]any{"ok": true, "target": target, "holder": zone.DealerID, "zone": zone})
+}
+
+func mustHex(s string) []byte {
+	b, _ := hex.DecodeString(s)
+	return b
+}
+
 // unitState — ответ для покупателя (тот же JSON, что рендерит web-checker).
 type unitState struct {
 	UnitID     string   `json:"unit_id"`
@@ -131,6 +223,7 @@ type unitState struct {
 	RiskScore  int      `json:"risk_score"`
 	Flags      []string `json:"flags"`
 	Message    string   `json:"message"`
+	Custody    map[string]any `json:"custody,omitempty"`
 }
 
 func (s *Server) unitState(id string, now int64) unitState {
@@ -160,6 +253,36 @@ func (s *Server) unitState(id string, now int64) unitState {
 	}
 	st.Status = "issued"
 
+	// custody: путь детали и допустимый регион текущего владельца
+	var zone *chain.DealerZone
+	if s.Custody != nil {
+		var bid [32]byte
+		copy(bid[:], mustHex(batchID))
+		if bc, ok := s.Custody.HolderForUnit(uid, bid); ok {
+			cust := map[string]any{
+				"holder": bc.Holder,
+				"since":  bc.LastChange,
+			}
+			if bc.Zone != nil {
+				zone = bc.Zone
+				cust["zone"] = map[string]any{
+					"dealer_id": bc.Zone.DealerID, "name": bc.Zone.Name,
+					"country": bc.Zone.Country, "lat": bc.Zone.Lat,
+					"lon": bc.Zone.Lon, "radius_km": bc.Zone.RadiusKm,
+				}
+			}
+			path := make([]map[string]any, 0, len(bc.History))
+			for _, ev := range bc.History {
+				path = append(path, map[string]any{
+					"from": ev.From, "to": ev.To, "ts": ev.TS,
+					"country": ev.Zone.Country, "name": ev.Zone.Name,
+				})
+			}
+			cust["path"] = path
+			st.Custody = cust
+		}
+	}
+
 	// риск по логу сканов
 	recs := []chain.ScanRecord{}
 	_ = chain.ScanLines(s.ScanLog, func(r chain.ScanRecord) error {
@@ -180,12 +303,16 @@ func (s *Server) unitState(id string, now int64) unitState {
 			}
 		}
 	}
-	st.RiskScore, st.Flags = risk.Evaluate(recs, now)
+	st.RiskScore, st.Flags = risk.Evaluate(recs, now, zone)
 	switch {
+	case contains(st.Flags, "custody_critical"):
+		st.Message = "КРИТИЧЕСКАЯ АНОМАЛИЯ: деталь вне региона официального дилера и есть признаки клонирования. Рекомендовано расследование и freeze партии."
 	case contains(st.Flags, "geo_velocity"):
 		st.Message = "ВНИМАНИЕ: сканы из географически невозможных точек. Код, вероятно, клонирован."
 	case contains(st.Flags, "scan_count_red", "scan_count_yellow"):
 		st.Message = "Подозрительная активность: этот код проверяли " + strconv.Itoa(st.Scans24h) + " раз за сутки."
+	case contains(st.Flags, "custody_mismatch"):
+		st.Message = "Серый импорт или подделка: деталь числится за официальным дилером, но отсканирована вне его региона."
 	default:
 		st.Message = "Оригинал. Выпущено заводом, ни разу не устанавливалось."
 	}

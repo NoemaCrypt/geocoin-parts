@@ -66,7 +66,7 @@ func main() {
 		log.Printf("якорен батч %s (%s): %d единиц, root %s", b.ID, b.Label, len(b.Units), c.BatchRootHex(b.ID))
 	}
 
-	srv := &api.Server{Chain: c, ScanLog: *logPath}
+	srv := &api.Server{Chain: c, ScanLog: *logPath, Custody: chain.NewCustodyRegistry(filepath.Join(*batchesDir, "custody-state.json"))}
 
 	if *anchor {
 		pass, err := os.ReadFile(*rpcPassFile)

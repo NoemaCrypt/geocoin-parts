@@ -30,8 +30,17 @@ object_type || schema_id || schema_version || canonical_payload)` — по фо�
 | `unit_batch` | bytes (32) | unit_id или batch_id (передача партией) |
 | `from_addr` | bytes (32) | Отправитель |
 | `to_addr` | bytes (32) | Получатель |
-| `geo_hash` | bytes (32) | Хеш гео-метки склада (координаты — off-chain) |
+| `dealer_id` | string | Идентификатор дилера/склада |
+| `country` | string (2) | ISO-3166 alpha-2 страны региона |
+| `geo_hash` | bytes (32) | Хеш координат склада (координаты — off-chain) |
+| `radius_km` | uint32 | Допустимый регион: радиус 150–300 км вокруг склада |
 | `ts` | uint64 | Время передачи |
+
+Геозона вместо точки: покупатель в соседнем городе не получает ложного
+срабатывания; скан вне радиуса — custody_mismatch (жёлтый «серый импорт»),
+совмещённый с гео-скоростью/аномальным счётчиком — custody_critical (красный,
+рекомендация freeze). Реализация Фазы 1 — `services/backend` (runtime реестра,
+состояние в `custody-state.json`), события включаются в state_root чекпоинтов.
 
 ## Валидатор (сайдчейн)
 

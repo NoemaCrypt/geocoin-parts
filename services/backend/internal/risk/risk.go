@@ -26,7 +26,11 @@ const (
 )
 
 // Evaluate считает риск по истории сканов одного unit_id.
-func Evaluate(recs []chain.ScanRecord, now int64) (score int, flags []string) {
+// zone — допустимый регион текущего custodian (nil = custody не известна):
+// скан за пределами радиуса — custody_mismatch («серый импорт»), совмещённый
+// с гео-скоростью/аномальным счётчиком — custody_critical (красный +
+// рекомендация freeze).
+func Evaluate(recs []chain.ScanRecord, now int64, zone *chain.DealerZone) (score int, flags []string) {
 	sort.Slice(recs, func(i, j int) bool { return recs[i].TS < recs[j].TS })
 
 	// 1. счётчик за 24 ч (уникальные пары lat/lon; dealer-сканы не считаем)
@@ -53,6 +57,7 @@ func Evaluate(recs []chain.ScanRecord, now int64) (score int, flags []string) {
 	}
 
 	// 2. гео-скор по последовательным сканам
+	geoVelocity := false
 	for i := 1; i < len(recs); i++ {
 		a, b := recs[i-1], recs[i]
 		dt := b.TS - a.TS
@@ -64,8 +69,31 @@ func Evaluate(recs []chain.ScanRecord, now int64) (score int, flags []string) {
 		if speed > MaxCivilSpeed && d > 50 { // >50 км отсекает шум GPS-дрейфа
 			score += 50
 			flags = append(flags, "geo_velocity")
+			geoVelocity = true
 			break
 		}
+	}
+
+	// 3. custody-mismatch: скан вне допустимого региона текущего custodian
+	custodyMismatch := false
+	if zone != nil && zone.RadiusKm > 0 {
+		for _, r := range recs {
+			if r.Source == "dealer" { // сканы дилера со своим складом не проверяем
+				continue
+			}
+			if GreatCircleKm(r.Lat, r.Lon, zone.Lat, zone.Lon) > zone.RadiusKm {
+				custodyMismatch = true
+				break
+			}
+		}
+	}
+	switch {
+	case custodyMismatch && (geoVelocity || scans24 > RedScans24h):
+		score += 60
+		flags = append(flags, "custody_critical")
+	case custodyMismatch:
+		score += 30
+		flags = append(flags, "custody_mismatch")
 	}
 
 	if score > 100 {
