@@ -1,4 +1,4 @@
-# GeoCoin Parts — реестр автозапчастей «банкнота» (UTXO / One-Time Claim)
+# GeoCoin Parts — Anti-Counterfeit Auto-Parts Registry ("Banknote" UTXO / One-Time Claim)
 
 ## English
 
