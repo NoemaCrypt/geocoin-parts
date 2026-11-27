@@ -1,7 +1,5 @@
 # GeoCoin Parts — реестр автозапчастей «банкнота» (UTXO / One-Time Claim)
 
-Bilingual: [English](#english) · [Русский](#русский)
-
 ## English
 
 An anti-counterfeit system for auto parts built on GeoCoin. This repository is
