@@ -9,13 +9,22 @@ the working mainnet is never touched.
 
 ## Model
 
-- **Secret codes never reach the blockchain**: only
-  `claim_hash = SHA-256("geocoin:parts:claim:v1" || unit_id || code)` is on-chain.
-- Every part is a "banknote": a public QR on the packaging (pre-purchase
-  verification) + a secret code under a scratch layer (vehicle installation,
-  irreversible redemption).
-- Label clones are detected instantly: a second redemption → 409; clone scans
-  from a foreign location → geo-velocity and abnormal scan counter.
+The core protection is cryptographic, not behavioral:
+
+- **The secret never leaves the label.** A 128-bit claim code is printed
+  under a scratch layer; on-chain there is only
+  `claim_hash = SHA-256("geocoin:parts:claim:v1" || unit_id || code)`.
+  A counterfeiter can copy the public QR, but cannot learn the secret
+  without opening genuine packaging — and the factory prints each code once.
+- **One-time redemption ("banknote").** Installing the part burns the unit:
+  the code is validated against `claim_hash` with a Merkle proof to
+  `batch_root` and can never be used again. A cloned label fails the
+  moment the genuine owner redeems it — every subsequent redemption
+  attempt gets 409 "already redeemed".
+- **Secondary anomaly signals** (risk engine): abnormal verification
+  frequency and scan locations that contradict the custody geofences —
+  useful for spotting clone farms early, but they only complement the
+  hash-based core above.
 - Batch minting via `batch_root` (Merkle); checkpoints of batches,
   redemptions and custody events are anchored to L1 through an accounting
   sidechain.
@@ -68,10 +77,11 @@ GeoCoin website; the choice is remembered in `localStorage`.
 | POST | `/api/custody/transfer` | batch transfer "Factory → Dealer" with a geofence |
 | GET | `/api/unit/{id}/proof` | Merkle proof against `batch_root` |
 
-Risk engine: geo-velocity 900 km/h, counter of unique ~1 km cells in 24 h,
-dealer custody geofences (radius 150–300 km + ISO-3166 country):
-`custody_mismatch` (yellow, grey import) and `custody_critical` (red,
-combined with cloning signs → freeze recommendation).
+Risk engine (a secondary layer on top of the hash core): geo-velocity
+900 km/h, counter of unique ~1 km cells in 24 h, dealer custody geofences
+(radius 150–300 km + ISO-3166 country): `custody_mismatch` (yellow, grey
+import) and `custody_critical` (red, combined with cloning signs → freeze
+recommendation).
 
 ## Isolated node
 
@@ -109,12 +119,20 @@ VIN — hash only with an off-chain salt. Next steps — the "Дальше" sect
 
 ## Модель
 
-- **Секретные коды никогда не попадают в блокчейн**: на-цепи только
-  `claim_hash = SHA-256("geocoin:parts:claim:v1" || unit_id || code)`.
-- Каждая деталь — «банкнота»: публичный QR на упаковке (проверка до покупки)
-  + секретный код под скретч-слоем (установка на авто, необратимое погашение).
-- Клоны этикетки выявляются мгновенно: повторное погашение → 409; сканы
-  клона с чужой геолокацией → гео-скор и аномальный счётчик.
+Основа защиты — криптография, а не поведенческие сигналы:
+
+- **Секрет не покидает этикетку.** 128-битный код напечатан под скретч-слоем;
+  на-цепи только `claim_hash = SHA-256("geocoin:parts:claim:v1" || unit_id ||
+  code)`. Подделщик может скопировать публичный QR, но не узнает секрет, не
+  вскрыв подлинную упаковку, — а завод печатает каждый код ровно один раз.
+- **Одноразовое погашение («банкнота»).** Установка детали сжигает единицу:
+  код проверяется против `claim_hash` с Merkle-пруфом к `batch_root` и больше
+  никогда не используется. Клонированная этикетка «умирает» в момент, когда
+  владелец подлинника гасит свой код, — каждая следующая попытка погашения
+  получает 409 «код уже был погашен».
+- **Дополнительные аномалии** (risk engine): аномальная частота проверок и
+  сканы вне геозон custody — помогают рано заметить фермы клонов, но лишь
+  дополняют описанную хэш-основу.
 - Минт партии через `batch_root` (Merkle), чекпоинты батчей/погашений/
   custody-событий якорятся в L1 через учётный сайдчейн.
 
@@ -166,10 +184,11 @@ Web-checker: `http://127.0.0.1:8087/` — проверка детали, пут�
 | POST | `/api/custody/transfer` | передача партии «Завод → Дилер» с геозоной |
 | GET | `/api/unit/{id}/proof` | Merkle-пруф против `batch_root` |
 
-Risk engine: гео-скор 900 км/ч, счётчик уникальных ячеек ~1 км за 24 ч,
-custody-геозоны дилеров (радиус 150–300 км + ISO-3166):
-`custody_mismatch` (жёлтый, серый импорт) и `custody_critical` (красный,
-совмещён с признаками клонирования → рекомендация freeze).
+Risk engine (дополнительный слой поверх хэш-основы): гео-скор 900 км/ч,
+счётчик уникальных ячеек ~1 км за 24 ч, custody-геозоны дилеров (радиус
+150–300 км + ISO-3166): `custody_mismatch` (жёлтый, серый импорт) и
+`custody_critical` (красный, совмещён с признаками клонирования →
+рекомендация freeze).
 
 ## Изолированная нода
 
