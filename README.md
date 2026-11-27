@@ -55,6 +55,9 @@ appears only when the backend is started with `-demo-scan` (demo stands).
 The checker is multilingual (RU / EN / DE / ES / ZH), same switcher as the
 GeoCoin website; the choice is remembered in `localStorage`.
 
+![GeoCoin Parts web checker](docs/checker-screenshot.png)
+
+
 ## Backend API (summary)
 
 | Method | Path | Description |
@@ -149,6 +152,9 @@ Web-checker: `http://127.0.0.1:8087/` — проверка детали, пут�
 (Завод → дилер), вердикты (оригинал / серый импорт / критическая аномалия /
 уже погашена), панель погашения кодом под скретчем. Кнопка «Демо-скан»
 появляется только при запуске backend с `-demo-scan` (стенды).
+
+![GeoCoin Parts web checker](docs/checker-screenshot.png)
+
 
 ## API backend (кратко)
 
