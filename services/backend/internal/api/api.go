@@ -8,6 +8,7 @@
 package api
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -33,10 +34,39 @@ var webAssetsFS embed.FS
 
 var webChecker, _ = webCheckerFS.ReadFile("web/index.html")
 
+var (
+	demoScanHTML = []byte("<!-- demo-scan disabled: run backend with -demo-scan -->")
+	// демо-блок в index.html: кнопка и функция demoScan()
+	demoScanOpen  = []byte("<!--DEMO-SCAN-BEGIN-->")
+	demoScanClose = []byte("<!--DEMO-SCAN-END-->")
+)
+
+// stripDemoScan убирает кнопку/функцию «Демо-скан» из HTML (прод-режим).
+func stripDemoScan(html []byte) []byte {
+	out := make([]byte, 0, len(html))
+	rest := html
+	for {
+		i := bytes.Index(rest, demoScanOpen)
+		if i < 0 {
+			out = append(out, rest...)
+			break
+		}
+		j := bytes.Index(rest[i:], demoScanClose)
+		if j < 0 {
+			out = append(out, rest...)
+			break
+		}
+		out = append(out, rest[:i]...)
+		out = append(out, demoScanHTML...)
+		rest = rest[i+j+len(demoScanClose):]
+	}
+	return out
+}
+
 type Server struct {
 	Chain   *chain.Chain
 	ScanLog string // путь к JSONL-логу сканов
-	Demux  bool   // демо-режим: повышенные пороги не нужны, лог общий
+	DemoScan bool // показывать кнопку «Демо-скан» и принимать demo-сканы (-demo-scan)
 	Custody *chain.CustodyRegistry // custody «Завод → Дилер» (Фаза 1)
 
 	// Якорение в L1 (опционально, -anchor): состояние/чекпоинты учётного сайдчейна
@@ -465,7 +495,11 @@ type httpResp struct {
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(webChecker)
+		if s.DemoScan {
+			_, _ = w.Write(webChecker)
+		} else {
+			_, _ = w.Write(stripDemoScan(webChecker))
+		}
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/assets/") {

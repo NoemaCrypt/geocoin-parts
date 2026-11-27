@@ -290,10 +290,12 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
         Проверить
       </button>
+      <!--DEMO-SCAN-BEGIN-->
       <button class="action-link action-link--gold" onclick="demoScan()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M12 8v4l2.5 2.5"/></svg>
         Демо-скан
       </button>
+      <!--DEMO-SCAN-END-->
     </div>
     <div class="stats">
       <div class="stat"><div class="n" id="scans">–</div><div class="t">сканов всего</div></div>
@@ -364,6 +366,7 @@ async function check() {
   }
 }
 
+<!--DEMO-SCAN-BEGIN-->
 async function demoScan() {
   const id = document.getElementById('unit').value.trim().toLowerCase();
   if (!id) return alert('Введите unit_id из secrets.tsv');
@@ -373,6 +376,7 @@ async function demoScan() {
   render(res.body);
 }
 
+<!--DEMO-SCAN-END-->
 async function redeem() {
   const id = document.getElementById('unit').value.trim().toLowerCase();
   const code = document.getElementById('code').value.trim();

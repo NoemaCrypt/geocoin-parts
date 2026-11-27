@@ -28,6 +28,7 @@ func main() {
 
 	// якорение в изолированную ноду degree-load
 	anchor := flag.Bool("anchor", false, "якорить батчи и погашения в L1 через RPC ноды")
+	demoScan := flag.Bool("demo-scan", false, "включить кнопку «Демо-скан» в web-checker (только для демо/стендов)")
 	rpcURL := flag.String("rpc-url", "http://127.0.0.1:23033/", "RPC ноды GeoCoin")
 	rpcUser := flag.String("rpc-user", "admin", "RPC пользователь (admin)")
 	rpcPassFile := flag.String("rpc-pass-file", "data/rpc-admin-pass", "файл с RPC паролем")
@@ -66,7 +67,7 @@ func main() {
 		log.Printf("якорен батч %s (%s): %d единиц, root %s", b.ID, b.Label, len(b.Units), c.BatchRootHex(b.ID))
 	}
 
-	srv := &api.Server{Chain: c, ScanLog: *logPath, Custody: chain.NewCustodyRegistry(filepath.Join(*batchesDir, "custody-state.json"))}
+	srv := &api.Server{Chain: c, ScanLog: *logPath, DemoScan: *demoScan, Custody: chain.NewCustodyRegistry(filepath.Join(*batchesDir, "custody-state.json"))}
 
 	if *anchor {
 		pass, err := os.ReadFile(*rpcPassFile)
