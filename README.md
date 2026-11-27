@@ -96,7 +96,7 @@ recommendation).
 directory `./data/loadnet`; nothing ever connects to the mainnet `degree`
 during development. On deployment the backend attaches to a mainnet client
 node via RPC (same API). The node binary and static libraries are taken from
-the main repository (`GEOCOIN_REPO`, default `~/Рабочий стол/GeoCoin`)
+the main repository (`GEOCOIN_REPO`, default `../GeoCoin` — a sibling checkout)
 read-only — GeoCoin itself is never modified: this is B2B software built
 *on top of* the chain, not a fork or a consensus participant.
 
@@ -113,7 +113,7 @@ The MVP pilot is **closed** (see `PROGRESS_MEMO.md`, Russian):
 3. **(в)** Print profile: labelgen (vector PDF/SVG, public QR + scratch zone
    with the install code), print manifest for the print run.
 
-Pilot: **Porsche, 1,000,000 units**; the backend is operated by the factory;
+Target pilot profile: **OEM automotive at Porsche scale (1,000,000 units)**; the backend is operated by the factory;
 VIN — hash only with an off-chain salt. Next steps — the "Дальше" section in
 `PROGRESS_MEMO.md` (print partner, Android wallet, freeze quorum, RocksDB,
 `/api/scan` protection).
@@ -213,7 +213,7 @@ Risk engine (дополнительный слой поверх хэш-осно�
 `./data/loadnet`; в процессе разработки ничего не подключается к mainnet
 `degree`. При внедрении backend подключается к клиентскому узлу mainnet по
 RPC (тот же API). Бинарник ноды и статические библиотеки берутся из основного
-репозитория (`GEOCOIN_REPO`, по умолчанию `~/Рабочий стол/GeoCoin`) только
+репозитория (`GEOCOIN_REPO`, по умолчанию `../GeoCoin` — соседний чекаут) только
 на чтение — GeoCoin не модифицируется: это B2B-ПО *поверх* цепи, не форк и
 не участник консенсуса.
 
@@ -230,7 +230,7 @@ RPC (тот же API). Бинарник ноды и статические би�
 3. **(в)** Тиражный профиль печати: labelgen (векторный PDF/SVG, открытый QR
    + скретч-зона с кодом установки), print-manifest для сверки тиража.
 
-Пилот: **Porsche, 1 000 000 единиц**; backend эксплуатирует завод; VIN —
+Целевой профиль пилота: **OEM automotive в масштабе Porsche (1 000 000 единиц)**; backend эксплуатирует завод; VIN —
 только хеш с off-chain солью. Следующие шаги — раздел «Дальше» в
 `PROGRESS_MEMO.md` (типография, Android-кошелёк, freeze-кворум, RocksDB,
 защита `/api/scan`).

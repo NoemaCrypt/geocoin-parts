@@ -8,7 +8,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GEOCOIN_REPO="${GEOCOIN_REPO:-$HOME/Рабочий стол/GeoCoin}"
+# GeoCoin checkout рядом с этим репозиторием (кроссплатформенный дефолт)
+GEOCOIN_REPO="${GEOCOIN_REPO:-$ROOT/../GeoCoin}"
 NODE_BIN="${GEOCOIN_NODE:-$GEOCOIN_REPO/out/build/linux-release-gui-gpu/geocoin-node}"
 export PATH="$HOME/.local/go/bin:$PATH"
 

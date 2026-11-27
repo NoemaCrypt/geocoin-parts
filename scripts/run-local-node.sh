@@ -7,7 +7,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GEOCOIN_NODE="${GEOCOIN_NODE:-$HOME/Рабочий стол/GeoCoin/out/build/linux-release-headless/geocoin-node}"
+GEOCOIN_NODE="${GEOCOIN_NODE:-$REPO_ROOT/../GeoCoin/out/build/linux-release-headless/geocoin-node}"
 
 if [[ ! -x "$GEOCOIN_NODE" ]]; then
   echo "geocoin-node не найден: $GEOCOIN_NODE"
