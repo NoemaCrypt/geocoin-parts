@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"geocoin.parts/backend/internal/chain"
+	"geocoin.parts/backend/internal/node"
 	"geocoin.parts/backend/internal/risk"
 )
 
@@ -32,7 +33,60 @@ var webChecker, _ = webCheckerFS.ReadFile("web/index.html")
 type Server struct {
 	Chain   *chain.Chain
 	ScanLog string // путь к JSONL-логу сканов
-	Demux   bool   // демо-режим: повышенные пороги не нужны, лог общий
+	Dermux  bool   // демо-режим: повышенные пороги не нужны, лог общий
+
+	// Якорение в L1 (опционально, -anchor): состояние/чекпоинты учётного сайдчейна
+	Anchor          *node.Anchorer
+	AnchorRoot      string    // последнее ЗАКРЕПЛЁННОЕ state_root (hex, пусто — ничего)
+	BaseRoot        string    // batch_root — база состояния до первого чекпоинта
+	PendingBaseline bool      // batch_root ещё не закреплён
+	Pending         []receipt // погашения, ожидающие чекпоинта
+}
+
+// receipt — погашение для следующего чекпоинта.
+type receipt struct {
+	UnitID  string
+	VINHash string
+	TS      int64
+}
+
+// receiptsRoot — корень состояния для якорения:
+// SHA-256("geocoin:parts:state:v1" || batch_root || N || SHA-256(последняя запись))
+func (s *Server) receiptsRoot() string {
+	h := sha256.New()
+	h.Write([]byte("geocoin:parts:state:v1"))
+	if s.BaseRoot != "" {
+		b, _ := hex.DecodeString(s.BaseRoot)
+		h.Write(b)
+	}
+	var last [32]byte
+	for _, r := range s.Pending {
+		b, _ := hex.DecodeString(r.VINHash)
+		u, _ := hex.DecodeString(r.UnitID)
+		sum := sha256.Sum256(append(append(append([]byte("geocoin:parts:redeem:v1"), u...), b...), []byte(fmt.Sprint(r.TS))...))
+		last = sum
+	}
+	h.Write([]byte(fmt.Sprint(len(s.Pending))))
+	h.Write(last[:])
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// flushPending якорит накопленное состояние очередным чекпоинтом.
+func (s *Server) FlushPending() (string, error) {
+	root := s.receiptsRoot()
+	txid, err := s.Anchor.AnchorState(root)
+	if err != nil {
+		return "", err
+	}
+	s.AnchorRoot = root
+	s.PendingBaseline = false
+	s.Pending = nil
+	return txid, nil
+}
+
+// pendingWork — есть ли что якорить.
+func (s *Server) HasPendingWork() bool {
+	return s.Anchor != nil && (s.PendingBaseline || len(s.Pending) > 0)
 }
 
 func (s *Server) Router() *http.ServeMux {
@@ -41,8 +95,27 @@ func (s *Server) Router() *http.ServeMux {
 	mux.HandleFunc("GET /api/unit/{id}/proof", s.handleProof)
 	mux.HandleFunc("POST /api/scan", s.handleScan)
 	mux.HandleFunc("POST /api/redeem", s.handleRedeem)
+	mux.HandleFunc("POST /api/anchor", s.handleAnchor)
 	mux.HandleFunc("GET /", s.handleWeb)
 	return mux
+}
+
+// handleAnchor — принудительный чекпоинт накопленных погашений в L1.
+func (s *Server) handleAnchor(w http.ResponseWriter, r *http.Request) {
+	if s.Anchor == nil {
+		writeJSON(w, httpResp{OK: false, Error: "ANCHORING_DISABLED", Message: "Запустите backend с -anchor"}, 400)
+		return
+	}
+	root := s.receiptsRoot()
+	txid, err := s.FlushPending()
+	if err != nil {
+		writeJSON(w, httpResp{OK: false, Error: "ANCHOR_FAILED", Message: err.Error()}, 502)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"ok": true, "state_root": root, "txid": txid,
+		"sidechain_id": s.Anchor.GenesisHash, "checkpoint_height": s.Anchor.NextHeight - 1,
+	})
 }
 
 // unitState — ответ для покупателя (тот же JSON, что рендерит web-checker).
@@ -235,6 +308,20 @@ func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	default:
 		st := s.unitState(req.UnitID, now)
 		writeJSON(w, httpResp{OK: true, Message: "Деталь погашена и привязана к автомобилю. Жизненный цикл закрыт.", Unit: st})
+		// якорение: погашение уходит в очередь чекпоинта L1
+		if s.Anchor != nil {
+			vinHashHex := ""
+			if req.VIN != "" {
+				vh := sha256.Sum256(append([]byte("geocoin:parts:vinsalt:v0:"), []byte(req.VIN)...))
+				vinHashHex = hex.EncodeToString(vh[:])
+			}
+			s.Pending = append(s.Pending, receipt{UnitID: req.UnitID, VINHash: vinHashHex, TS: now})
+			if txid, err := s.FlushPending(); err != nil {
+				log.Printf("anchor deferred: %v", err) // интервал/подтверждение — уйдёт следующим тиком
+			} else {
+				log.Printf("чекпоинт L1 отправлен: txid=%s", txid)
+			}
+		}
 	}
 }
 

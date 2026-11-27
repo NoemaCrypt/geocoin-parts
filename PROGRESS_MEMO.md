@@ -1,0 +1,94 @@
+# Памятка о ходе работ над GeoCoin Parts (реестр автозапчастей)
+
+Последнее обновление: 2026-11-27
+
+## Цель
+
+MVP системы защиты автозапчастей от подделки на базе GeoCoin: модель «банкноты»
+(UTXO / one-time claim), публичная проверка коробки, гео-аномалии, chain of
+custody на учётном сайдчейне. Разработка изолирована от основного репозитория
+L1 (`~/Рабочий стол/GeoCoin`) — работающий mainnet не затрагивается.
+
+## Исходная точка
+
+- Приватный репозиторий `NoemaCrypt/geocoin-parts` (SSH, аккаунт `matbar14`).
+- План MVP: `docs/PARTS_REGISTRY_MVP_RU.md`; принятые решения — раздел 7
+  (двойной формат кода, VIN только хеш с off-chain солью, backend завода,
+  доказательный якорь, пилот Porsche 1 000 000 единиц).
+- Схемы: `schemas/parts-unit-v1.md` (`com.geocoin.parts.unit/v1`, custody-события,
+  правила валидатора, минт батча через `batch_root`).
+- Инструменты: Go 1.23.4 (`~/.local/go/bin`), ссылка на ноду из основного репозитория.
+
+## Выполнено
+
+- Создан приватный репозиторий, перенесены план и ссылочные документы
+  (`B2B_FOUNDATION_RU.md`, `BLOCKCHAIN_CAPABILITIES_RU.md`), манифесты
+  изолированных сетей в `config/`, каркас сервисов.
+- Фаза 0 (коммит `5be8b0d`, Go):
+  - `libs/merkle` — общий модуль Merkle-дерева: потоковая редукция уровней через
+    файлы (bufio), canonical-паринг, офлайн-проверка пруфов; тесты на
+    n = 1…1000, включая нечётные уровни (найден и исправлен баг «EOF на хвосте»).
+  - `services/provisioning/cmd/provision` — потоковый генератор батчей:
+    CSPRNG unit_id + 128-битный секрет, `claim_hash =
+    SHA-256("geocoin:parts:claim:v1" || unit_id || code)`, Base58-код с
+    группировкой по 6 без 0/O/I/l, QR-payload, экспорт `units.csv` /
+    `secrets.tsv` / `batch.json`.
+  - `services/backend` — verification backend + mock-цепь:
+    - проверка погашения совпадает с будущей консенсусной: witness `claim_code`
+      против `claim_hash` + Merkle-принадлежность `batch_root`;
+    - счётчик сканов (уникальные ячейки ~1 км за 24 ч; сканы дилера не
+      завышают), гео-скор 900 км/ч (ортодромия; на проде GeographicLib WGS84),
+      JSONL-лог append-only;
+    - API: `GET /api/unit/{id}`, `POST /api/scan`, `GET /api/unit/{id}/proof`,
+      `POST /api/redeem`; web-checker вшит в бинарник (go:embed).
+  - `scripts/demo-cycle.sh` — полный цикл на тестовом батче 1000 единиц:
+    скан (Минск) → гео-аномалия (Алматы, 2 ч; risk 50, flag `geo_velocity`) →
+    погашение с VIN-хешем → клоны получают HTTP 409 «Код уже был погашен».
+    Цикл проверен, репозиторий запушен.
+- Найденные и закрытые дефекты: Base58 регистрочувствителен (ранний ToUpper в
+  redeem ломал код); web-checker переехал в `internal/api/web` (go:embed);
+  детерминизм порядка листьев при якорении батча (LeafOrder из units.csv).
+
+## Текущий этап: (a) привязка backend к изолированной ноде degree-load — ГОТОВО
+
+- Нода: собранный бинарник основного репозитория
+  (`out/build/linux-release-gui-gpu/geocoin-node`), сеть `degree-load`
+  (RPC 23033), каталог `data/loadnet`, майнинг `setgenerate`. Mainnet не
+  затрагивается; сборка L1 используется только на чтение.
+- Подписи: `tools/falcon-signer` (C++), линкуется к готовым статическим
+  библиотекам L1 (`libgeocoin_core/crypto/...`), исходники L1 не модифицируются.
+  Режимы: `payload` (recoverable message, для finalize...), `tx` (полная
+  обработка: sidechain_signature → затем witness входов — порядок критичен,
+  т.к. hash входа включает sidechain_signature), `addr`, `roundtrip`.
+- Проверенный вручную конвейер учётного сайдчейна (policy 3/1):
+  `createsidechaingenesis` (sidechain_kind=accounting, schema_hash в genesis
+  v2) → `LOCK_DEPOSIT` (fee = input − amount − change; обязательно наличие
+  network fee, иначе fee-too-low; owner + witness) →
+  `REGISTER_ACCOUNTING_SIDECHAIN` (namespace глобально уникален — в dev
+  добавляется суффикс; депозит должен подтвердиться до регистрации) →
+  чекпоинты ТОЛЬКО через `createbatchsidechaincheckpointpayload` (одиночный
+  SIDECHAIN_CHECKPOINT — легаси и отклоняется) с `proof_hex` SCA1 от
+  `createaccountingcheckpointproofv1`; `checkpoint_height` — внутренний счётчик
+  сайдчейна (1,2,3…), НЕ высота L1; интервал ≥ 5 блоков L1; fee из депозита
+  (5000 angles); высота обязана расти (дубликат отклонён — проверено).
+- Интеграция в backend (`services/backend/internal/node`):
+  - `-anchor` режим: EnsureRegistered (идемпотентно, состояние в
+    `anchor-state.json`) + якорение batch_root чекпоинтом #1;
+  - погашения копятся в очередь; `POST /api/anchor` и фоновый retry (10 c)
+    якорят их чекпоинтом: state_root =
+    SHA-256("geocoin:parts:state:v1" || batch_root || N || SHA-256(последнего
+    погашения));
+  - предфлайт `testmempoolaccept` перед отправкой LOCK.
+- `scripts/bootstrap-node.sh` — нода + кошелёк + майнинг + ключ владельца
+  (`data/node-key`) + сборка falcon-signer; `scripts/demo-node-cycle.sh` —
+  полный цикл на реальной ноде: батч → genesis/LOCK/REGISTER → чекпоинт
+  batch_root → скан → гео-аномалия → погашение → чекпоинт погашения.
+  Проверено: чекпоинты приняты консенсусом, `anchor-state.next_height` растёт.
+
+## Ограничения
+
+- Sidechain-роутинг (учётный сайдчейн с комитетом и депозитами) — фаза 2–3 по
+  плану; сейчас якорение в L1 напрямую из изолированной ноды.
+- Гео-скор — сфера; замена на GeographicLib WGS84 в фазе 1.
+- Состояние батчей в backend — в памяти (тестовые объёмы); на проде RocksDB.
+- Соль VIN в демо фиксированная — на проде off-chain у backend завода.

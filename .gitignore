@@ -26,3 +26,12 @@ Thumbs.db
 # Go binaries
 provision
 backend
+
+# Node RPC passwords and dev keys (isolated network only)
+data/rpc-admin-pass
+data/rpc-miner-pass
+data/wallet-pass
+data/node-key
+
+# Signer binary
+tools/falcon-signer/falcon-signer

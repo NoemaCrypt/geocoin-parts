@@ -28,15 +28,20 @@ GEOCOIN_NODE=~/Рабочий\ стол/GeoCoin/out/build/linux-release-headless
   bash scripts/run-local-node.sh load
 ```
 
-## Фаза 0 (реализована, без ноды — mock-цепь)
+## Фаза 0+ (реализована: mock-цепь + реальная изолированная нода)
 
 ```bash
+# полный цикл на mock-цепи (без ноды):
 bash scripts/demo-cycle.sh 1000
+
+# полный цикл НА РЕАЛЬНОЙ ИЗОЛИРОВАННОЙ НОДЕ degree-load:
+bash scripts/demo-node-cycle.sh 1000
+#   genesis учётного сайдчейна → LOCK_DEPOSIT → REGISTER_ACCOUNTING →
+#   чекпоинт batch_root → скан → гео-аномалия → погашение → чекпоинт погашения
 ```
 
-Полный цикл: генерация тестового батча (1000 единиц) → mock-цепь →
-скан → гео-аномалия (Минск→Алматы за 2 ч) → погашение по claim_code +
-Merkle-пруфу → клоны видят красный экран. Go — `~/.local/go/bin`.
+Go — `~/.local/go/bin`. Ссылка на ноду GeoCoin: `GEOCOIN_REPO` (по умолчанию
+`~/Рабочий стол/GeoCoin`); см. `PROGRESS_MEMO.md`.
 
 ## Локальная изолированная нода
 
